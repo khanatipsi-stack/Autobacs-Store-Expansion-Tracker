@@ -222,12 +222,12 @@ dialog::backdrop{background:rgba(14,14,22,.55)}
 .mcols{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px}
 @media (max-width:860px){.mcols{grid-template-columns:minmax(0,1fr)}}
 .sec h4{font-family:var(--f-display);font-size:17px;margin:0 0 8px;font-weight:600;letter-spacing:.02em}
-.stg{display:grid;grid-template-columns:118px minmax(0,1fr) 56px;gap:8px;align-items:center;font-size:12px;padding:3px 0}
+.stg{display:grid;grid-template-columns:118px minmax(0,1fr) 175px;gap:8px;align-items:center;font-size:12px;padding:3px 0}
 .stg .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stg .tr{position:relative;height:14px;background:var(--surface-2);border-radius:3px}
 .stg .tr .p{position:absolute;top:2px;height:4px;background:var(--base);border-radius:2px}
 .stg .tr .a{position:absolute;top:7px;height:6px;border-radius:2px}
-.stg .d{font-family:var(--f-mono);text-align:right;font-size:11.5px}
+.stg .d{font-family:var(--f-mono);text-align:right;font-size:11.5px;white-space:nowrap}
 .stg.top .nm{font-weight:700}
 .stg.grp{grid-template-columns:1fr;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);font-weight:600;padding-top:8px}
 .cause{border:1px solid var(--line);border-left:3px solid var(--crit);border-radius:6px;padding:8px 10px;font-size:12.5px;display:grid;gap:2px}
@@ -277,6 +277,12 @@ dialog::backdrop{background:rgba(14,14,22,.55)}
 .rnote{position:absolute;top:33px;font-size:11.5px;color:var(--fg-3);white-space:nowrap}
 .gname .rl4{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gname .rl4 b{font-weight:700}
+/* Status Main multi-select dropdown */
+.msel{position:relative}.msel>summary{list-style:none}.msel>summary::-webkit-details-marker{display:none}
+.mselp{position:absolute;z-index:20;top:calc(100% + 6px);left:0;min-width:270px;max-height:min(80vh,560px);overflow:auto;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;display:grid;gap:2px}
+.mopt{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:13px}.mopt:hover{background:var(--surface-2)}.mopt input{accent-color:var(--accent)}.mopt .ct{margin-left:auto;font-family:var(--f-mono);font-size:11px;color:var(--fg-3)}
+.seg2{display:none}.stg .d .stt{font:500 10px var(--f-body);color:var(--fg-2)}
+.mselact{display:flex;gap:6px;padding:6px 4px 2px;border-top:1px solid var(--line);margin-top:4px}
 </style>
 
 <header class="bar">
@@ -313,7 +319,7 @@ dialog::backdrop{background:rgba(14,14,22,.55)}
     <div class="ph">
       <h2 id="gt">Full-Process End-to-End Gantt <span class="tag" id="gTag">Day-by-Day</span></h2>
       <div class="ctrls">
-        <span class="seg2" role="group" aria-label="ช่วงของกระบวนการที่แสดง"><button type="button" class="chip" id="cutOn" aria-pressed="true" title="ตัด P1 Raw Material และ P2 JP1/JP2 Approve ออก พร้อมตัด SLA 40 วัน (17+23) นับ Day 0 จากวัน ROI Approve">ตัด P1–P2 · Day 0 = ROI Approve</button><button type="button" class="chip" id="cutOff" aria-pressed="false" title="แสดงกระบวนการเต็ม นับ Day 0 จากวันเริ่มต้น (Raw Material)">Full Process (รวม P1–P2)</button></span>
+        <span class="seg2" hidden role="group" aria-label="ช่วงของกระบวนการที่แสดง"><button type="button" class="chip" id="cutOn" aria-pressed="true" title="ตัด P1 Raw Material และ P2 JP1/JP2 Approve ออก พร้อมตัด SLA 40 วัน (17+23) นับ Day 0 จากวัน ROI Approve">ตัด P1–P2 · Day 0 = ROI Approve</button><button type="button" class="chip" id="cutOff" aria-pressed="false" title="แสดงกระบวนการเต็ม นับ Day 0 จากวันเริ่มต้น (Raw Material)">Full Process (รวม P1–P2)</button></span>
         <label class="toggle"><input type="checkbox" id="tPar"> แสดง Parallel Process (ร่างสัญญา / ลงนามสัญญาเช่า / รังวัด / ประชาพิจารณ์)</label>
         <label class="toggle">เกณฑ์ Delay
           <select id="tBasis"><option value="sheet">Acc win/loss ตาม Sheet</option><option value="e2e">End-to-End เทียบ SLA รวม</option></select></label>
@@ -741,7 +747,7 @@ Win / Loss"
 "use strict";
 const DAY=86400000;
 /* Target SLA ใหม่ = SLA เดิมของ Sheet (173) + ช่วงรอ M3 (รังวัด + ประชาพิจารณ์ + ลงนามสัญญาเช่า ต้องผ่านก่อนเริ่ม P7 มอบอำนาจ) 35 วัน = 208 วัน */
-const GATE_WAIT=35;
+const GATE_WAIT=35;const CUT_P1P2_SLA=35;
 const TAB_MAIN='DATA Planing';
 const CFG=Object.assign({id:'1UXDCPDSSFxq64En0AT2LmAS-CFFmGWSASAWz8ZIgJ9Y',gid:TAB_MAIN,design:'Tracking Design',designCol:'AE',boq:'582228203',boqCol:'AC',auto:'1'},(()=>{try{return JSON.parse(localStorage.getItem('abx.cfg')||'{}')}catch(e){return {}}})());
 const SEED_DESIGN={'SAB-SAQ-2026-0044':['SA ส่งผังบริเวณตลาดจาก LL ให้ 25/5/26 (พื้นที่ในตลาด)','Approve Rev.0 → 15/6/26','มีการให้ Revise แบบ → Approve Rev.1 วันที่ 7/8/26','20/8/26 แก้ไขแบบฟาเซียตรงห้องขายให้สูงขึ้น']};
@@ -771,6 +777,7 @@ const SNAME=Object.fromEntries(STAGES.map(s=>[s[0],s[2]]).concat(PAR.map(p=>[p[0
 const SOWN=Object.fromEntries(STAGES.map(s=>[s[0],s[4]]).concat(PAR.map(p=>[p[0],p[3]])));
 const SCAUSE=Object.fromEntries(STAGES.map(s=>[s[0],s[5]]).concat(PAR.map(p=>[p[0],p[4]])));
 const PHASES=[['P1','Raw Material',['raw']],['P2','JP1/JP2 Approve',['jp']],['P3','Site Exiting',['site']],['P4','Design',['design']],['P5','BOQ',['boq']],['P6','PR/PO/หาผรม.',['con','pr','po']],['P7','ขอมอบอำนาจ',['poa']],['P8','Permission',['kom','permit']],['P9','Construction',['koms','build','setup','open']]];
+const PL=p=>'P'+(+p.slice(1)-2);
 const MATRIX=[['Raw Mat.',['raw']],['JP1/JP2',['jp']],['Site Exit.',['site']],['Design',['design']],['BOQ',['boq']],['จัดหา ผรม.',['con']],['PR',['pr']],['PO',['po']],['มอบอำนาจ',['poa']],['KOM Office',['kom']],['Permission',['permit']],['KOM Site',['koms']],['Constr.',['build']],['Set up',['setup']],['Open',['open']]];
 const H={ok:['On Track','var(--ok)'],warn:['Warning','var(--warn)'],crit:['Critical','var(--crit)'],na:['ไม่มีข้อมูล','var(--fg-3)']};
 
@@ -886,7 +893,7 @@ function delayOf(b){return state.basis==='e2e'?b.e2e:-b.acc;}
 /* ---------- state ---------- */
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 const state={main:new Set(),health:new Set(),step:'',type:'',q:'',par:false,basis:'sheet',zoom:'fit',color:'phase',gsort:'delay',cut:true,rsort:'paid',sort:['delay',-1]};
-try{const s=JSON.parse(store.get('abx.filters')||'null');if(s){state.main=new Set(s.main||[]);state.health=new Set(s.health||[]);state.par=!!s.par;state.basis=s.basis||'sheet';state.zoom=s.zoom2||'fit';state.color=s.color||'phase';state.gsort=s.gsort||'delay';state.cut=s.cut===undefined?true:!!s.cut;state.rsort=s.rsort||'paid';}}catch(e){}
+try{const s=JSON.parse(store.get('abx.filters')||'null');if(s){state.main=new Set(s.main||[]);state.health=new Set(s.health||[]);state.par=!!s.par;state.basis=s.basis||'sheet';state.zoom=s.zoom2||'fit';state.color=s.color||'phase';state.gsort=s.gsort||'delay';state.cut=true;state.rsort=s.rsort||'paid';}}catch(e){}
 let DATA=[],SRC='snapshot';
 const NOTES={design:{},boq:{}},NROWS={design:null,boq:null};
 const RCA={};let db=null;
@@ -904,10 +911,15 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=t=>t==null?'—':new Date(t).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit',timeZone:'UTC'});
 const sgn=n=>n==null?'—':(n>0?'+':'')+n;
 
+const STATUS_ALL=['01 On Hand BD.','01 On Hand Eng.','01 On Hand SA.','04 Open','05 Hold','06 Cancel','07 Registered','Cancel Rev','Issue / Problem','Pending BD.','Pending SA.','Under Review'];
+let MAINS=[];
+const mainLab=()=>{const a=[...state.main].sort(),t=MAINS.length;if(!a.length||a.length===t)return 'ทั้งหมด ('+t+')';return a.length<=2?a.join(', '):a.slice(0,2).join(', ')+' +'+(a.length-2);};
+function syncMain(){const d=$('#fMain');d.querySelectorAll('input[data-m]').forEach(i=>{i.checked=state.main.has(i.dataset.m);});const l=d.querySelector('.mlab');if(l)l.textContent=mainLab();}
 function buildFilters(){
   const cnt={};for(const b of DATA)cnt[b.main]=(cnt[b.main]||0)+1;
-  const order=Object.keys(cnt).sort();
-  $('#fMain').innerHTML=order.map(m=>`<button type="button" class="chip" data-m="${esc(m)}" aria-pressed="${state.main.has(m)}">${esc(m)} <span class="ct">${cnt[m]}</span></button>`).join('');
+  const order=[...new Set(STATUS_ALL.concat(Object.keys(cnt)))].sort();
+  MAINS=order;
+  $('#fMain').innerHTML=`<details class="msel"><summary class="chip" title="เลือกได้หลายสถานะ"><span class="mlab">${esc(mainLab())}</span> <span aria-hidden="true">▾</span></summary><div class="mselp">${order.map(m=>`<label class="mopt"><input type="checkbox" data-m="${esc(m)}" ${state.main.has(m)?'checked':''}><span>${esc(m)}</span><span class="ct">${cnt[m]||0}</span></label>`).join('')}<div class="mselact"><button type="button" class="chip" data-mall>เลือกทั้งหมด</button><button type="button" class="chip" data-mnone>ยกเว้น Cancel</button></div></div></details>`;
   const steps=[...new Set(DATA.map(b=>b.s1).filter(Boolean))].sort();
   $('#fStep').innerHTML='<option value="">ทั้งหมด</option>'+steps.map(s=>`<option ${s===state.step?'selected':''}>${esc(s)}</option>`).join('');
   $('#fHealth').innerHTML=['ok','warn','crit'].map(h=>`<button type="button" class="chip" data-h="${h}" aria-pressed="${state.health.has(h)}"><i class="dot" style="background:${H[h][1]}"></i>${H[h][0]}</button>`).join('');
@@ -930,7 +942,7 @@ function renderKPI(L){
   $('#kpis').innerHTML=`
   <div class="kpi"><span class="lab">Total Active Branches</span><span class="val num">${active.length}<small>สาขาใน Pipeline</small></span><span class="sub">ทั้งหมด ${DATA.length} รายการใน Sheet · Cancel ${DATA.length-active.length} · แสดงตามตัวกรอง ${L.length}</span></div>
   <div class="kpi"><span class="lab">SLA Health Score</span><span class="val num" style="color:${score>=60?'var(--ok)':score>=30?'var(--warn)':'var(--crit)'}">${hs.length?score+'%':'—'}<small>On Track</small></span><div class="meter">${meter}</div><span class="sub num">On Track ${c.ok} · Warning ${c.warn} · Critical ${c.crit} <span style="color:var(--fg-3)">(${state.basis==='e2e'?'E2E vs SLA':'Acc ตาม Sheet'})</span></span></div>
-  <div class="kpi"><span class="lab">Average Days to Open</span><span class="val num">${avgA??'—'}<small>วัน (เปิดแล้ว ${opened.length} สาขา)</small></span><span class="sub num">SLA เป้าหมาย ${DATA[0]?.sumSla??208} วัน (173 + รอ M3 ${GATE_WAIT}) · Forecast สาขาที่กำลังดำเนินการ ${avgF??'—'} วัน (${fcs.length} สาขา)</span></div>
+  <div class="kpi"><span class="lab">Average Days to Open</span><span class="val num">${avgA??'—'}<small>วัน (เปิดแล้ว ${opened.length} สาขา)</small></span><span class="sub num">SLA เป้าหมาย ${state.cut?(DATA[0]?.sumSla??208)-CUT_P1P2_SLA:DATA[0]?.sumSla??208} วัน${state.cut?'':' (173 + รอ M3 '+GATE_WAIT+')'} · Forecast สาขาที่กำลังดำเนินการ ${avgF??'—'} วัน (${fcs.length} สาขา)</span></div>
   <div class="kpi hot"><span class="lab">Top Bottleneck Stage</span><span class="val">${top&&top.v?esc(SNAME[top.k]):'—'}</span><span class="sub num">${top&&top.v?`ช้าเฉลี่ย ${top.v} วัน/สาขา (ใช้จริง ${top.wd==null?'—':Math.round(top.wd)} vs SLA ${Math.round(top.sla)} วัน) · เสร็จแล้ว ${top.n} สาขา · ${esc(SOWN[top.k])}`:'ไม่มีขั้นตอนที่เสร็จแล้วและช้ากว่า SLA ในตัวกรองนี้'}</span></div>`;
 }
 function rankStages(L){const r=[];for(const k of SKEY.concat(PAR.map(p=>p[0]))){let n=0,sad=0,late=0,early=0,swd=0,nwd=0,ssla=0;for(const b of L){const s=b.S[k]||b.P[k];if(!isFin(s)||s.ad==null)continue;n++;sad+=s.ad;ssla+=s.sla??0;if(s.wd!=null){swd+=s.wd;nwd++;}if(s.ad<0)late++;else if(s.ad>0)early++;}
@@ -944,22 +956,22 @@ function renderGantt(L){
   const cut=state.cut;const OFF=b=>cut?b.off:0;const OB=b=>cut?b.base.jp[1]:0;const SK=cut?SKEY.filter(k=>k!=='raw'&&k!=='jp'):SKEY;
   const PC=Object.fromEntries(PHASES.map(([p])=>[p,`var(--${p.toLowerCase()})`]));
   const SPH=Object.fromEntries(STAGES.map(s=>[s[0],s[3]]));
-  $('#pLegend').innerHTML=PHASES.filter(([p])=>!cut||(p!=='P1'&&p!=='P2')).map(([p,lab])=>`<span><i style="background:${PC[p]}"></i>${p} ${esc(lab)}</span>`).join('');
+  $('#pLegend').innerHTML=PHASES.filter(([p])=>!cut||(p!=='P1'&&p!=='P2')).map(([p,lab])=>`<span><i style="background:${PC[p]}"></i>${PL(p)} ${esc(lab)}</span>`).join('');
   let rows=L.filter(b=>b.has);
   const prog=b=>b.mx.reduce((a,m)=>a+m.pct,0);
   if(state.gsort==='start')rows.sort((a,b)=>a.t0-b.t0);else if(state.gsort==='progress')rows.sort((a,b)=>prog(b)-prog(a));else rows.sort((a,b)=>delayOf(b)-delayOf(a));
   const none=L.length-rows.length;
   let maxD=200,minD=0;for(const b of rows){const o=OFF(b),ob=OB(b);maxD=Math.max(maxD,b.endDay-o+20,b.sumSla-ob+20,b.lastDay-o+20,b.day(TODAY)-o+10);if(cut){for(const s of b.seg){if(s.k==='raw'||s.k==='jp')continue;minD=Math.min(minD,s.s-o);}for(const m of b.ms){if(m[1]!=null&&m[0]!=='M1')minD=Math.min(minD,b.day(m[1])-o);}}if(state.par)for(const p of PAR){const s=b.P[p[0]];if(s.af)maxD=Math.max(maxD,b.day(s.af)-o+20);if(cut){const a=s.as??s.ps;if(a!=null)minD=Math.min(minD,b.day(a)-o);}}}
-  maxD=Math.ceil(maxD/30)*30;const padD=cut&&minD<0?Math.ceil(-Math.max(minD,-180)/60)*60:0;
+  maxD=Math.ceil(maxD/30)*30;const padD=0;
   const wrapW=$('#gantt').clientWidth||1000;const nameW=innerWidth<=640?180:310;
   const z=state.zoom==='fit'?Math.max(1.6,(wrapW-nameW-70)/(maxD+padD)):+state.zoom;
   const W=Math.round((maxD+padD)*z)+60;const X=d=>(Math.max(-padD,d)+padD)*z;
   const ref=rows[0]||DATA.find(b=>b.has);
-  let head='';if(ref){const ob0=cut?ref.base.jp[1]:0;for(const [p,lab,ks] of PHASES){if(cut&&(p==='P1'||p==='P2'))continue;const a=ref.base[ks[0]][0]-ob0,e=ref.base[ks[ks.length-1]][1]-ob0;head+=`<div class="phband" style="left:${X(a)}px;width:${X(e)-X(a)}px;background:${PC[p]}" title="${p} ${esc(lab)} · SLA Day ${a+1}–${e}">${X(e)-X(a)>34?p:''}${X(e)-X(a)>150?' '+esc(lab):''}</div><div class="phsla" style="left:${X(a)}px;width:${X(e)-X(a)}px;color:${PC[p]}" title="${p} ${esc(lab)} · SLA ${e-a} วัน">${e-a}d</div>`;if(p==='P6'){const ga=ref.gateBase[0]-ob0,ge=ref.gateBase[1]-ob0;head+=`<div class="phband gt" style="left:${X(ga)}px;width:${X(ge)-X(ga)}px" title="รอ M3 Gate: รังวัด+ประชาฯ+ลงนามสัญญาเช่า SLA Day ${ga}–${ge} (${GATE_WAIT} วัน)">${X(ge)-X(ga)>60?'รอ M3':''}</div><div class="phsla" style="left:${X(ga)}px;width:${X(ge)-X(ga)}px;color:var(--fg-3)" title="รอ M3 Gate · ${ge-ga} วัน">${ge-ga}d</div>`;}}}
+  let head='';if(ref){const ob0=cut?ref.base.jp[1]:0;for(const [p,lab,ks] of PHASES){if(state.cut&&(p==='P1'||p==='P2'))continue;if(cut&&(p==='P1'||p==='P2'))continue;const a=ref.base[ks[0]][0]-ob0,e=ref.base[ks[ks.length-1]][1]-ob0;head+=`<div class="phband" style="left:${X(a)}px;width:${X(e)-X(a)}px;background:${PC[p]}" title="${PL(p)} ${esc(lab)} · SLA Day ${a+1}–${e}">${X(e)-X(a)>34?PL(p):''}${X(e)-X(a)>150?' '+esc(lab):''}</div><div class="phsla" style="left:${X(a)}px;width:${X(e)-X(a)}px;color:${PC[p]}" title="${PL(p)} ${esc(lab)} · SLA ${e-a} วัน">${e-a}d</div>`;if(p==='P6'){const ga=ref.gateBase[0]-ob0,ge=ref.gateBase[1]-ob0;head+=`<div class="phband gt" style="left:${X(ga)}px;width:${X(ge)-X(ga)}px" title="รอ M3 Gate: รังวัด+ประชาฯ+ลงนามสัญญาเช่า SLA Day ${ga}–${ge} (${GATE_WAIT} วัน)">${X(ge)-X(ga)>60?'รอ M3':''}</div><div class="phsla" style="left:${X(ga)}px;width:${X(ge)-X(ga)}px;color:var(--fg-3)" title="รอ M3 Gate · ${ge-ga} วัน">${ge-ga}d</div>`;}}}
   const step=z<2.2?60:30;
   let ticks='';for(let d=-padD;d<=maxD;d+=step)ticks+=`<div class="tick" style="left:${X(d)}px">D${d}</div>`;
   let grid='';for(let d=-padD;d<=maxD;d+=step){if(d===0&&padD===0)continue;grid+=`<div class="gridl${d===0?' d0':''}" style="left:${X(d)}px"></div>`;}
-  let html=`<div class="grow ghead"><div class="gname" style="width:${nameW}px" title="T = Target SLA วัน (SLA ขั้นตอน + รอ M3) | A/F = Actual/Forecast วัน | ส่วนต่าง (E2E) · บรรทัดล่าง = Parallel ที่ต้องเสร็จก่อน P7">สาขา · Target SLA | Actual/Forecast</div><div class="gtrack" style="width:${W}px;height:56px">${head}${ticks}</div></div>`;
+  let html=`<div class="grow ghead"><div class="gname" style="width:${nameW}px" title="T = Target SLA (วัน) (SLA ขั้นตอน + รอ M3) | A/F = Actual/Forecast วัน | ส่วนต่าง (E2E) · บรรทัดล่าง = Parallel ที่ต้องเสร็จก่อน P7">สาขา · Target SLA ${ref?(ref.sumSla-ref.base.jp[1])+' วัน':''} | Actual/Forecast</div><div class="gtrack" style="width:${W}px;height:56px">${head}${ticks}</div></div>`;
   for(const b of rows){
     const h=health(b),hc=H[h][1];
     const ph=state.par?PAR.length*16+8:0,hh=Math.max(92,50+ph);
@@ -967,7 +979,8 @@ function renderGantt(L){
     // baseline by phase
     const o=OFF(b),ob=OB(b);for(const k of SK){const [a0,e0]=b.base[k];const a=a0-ob,e=e0-ob;if(e>a)t+=`<i class="bseg" style="left:${X(a)}px;width:${X(e)-X(a)}px;background:${PC[SPH[k]]}" title="SLA ${esc(SNAME[k])}: Day ${a}→${e} (${e-a} วัน)"></i>`;}
     t+=`<i class="gate" style="left:${X(b.gateBase[0]-ob)}px;width:${X(b.gateBase[1]-ob)-X(b.gateBase[0]-ob)}px" title="SLA รอ M3 Gate (รังวัด+ประชาฯ+ลงนามเช่า): Day ${b.gateBase[0]-ob}→${b.gateBase[1]-ob} (${GATE_WAIT} วัน)"></i>`;
-    t+=`<div class="slaend" style="left:${X(b.sumSla-ob)}px"><span>SLA ${b.sumSla-ob}</span></div>`;
+    const displaySla=b.sumSla-ob;
+    t+=`<div class="slaend" style="left:${X(displaySla)}px"><span>SLA ${displaySla} วัน</span></div>`;
     // actual segments: within SLA solid, overrun striped
     let a1=0;
     for(const s0 of b.seg){if(cut&&(s0.k==='raw'||s0.k==='jp'))continue;const s={...s0,s:s0.s-o,e:s0.e-o};const len=Math.max(1,s.e-s.s);const sla=b.S[s.k].sla||0;const col=state.color==='phase'?PC[SPH[s.k]]:(b.sd[s.k]>10?'var(--crit)':b.sd[s.k]>3?'var(--warn)':'var(--ok)');
@@ -979,12 +992,12 @@ function renderGantt(L){
       a1=Math.max(a1,s.e);}
     let endX=X(a1);
     if(b.fc!=null&&b.fc-o>a1){t+=`<div class="fc2" data-code="${esc(b.code)}" style="left:${X(a1)}px;width:${X(b.fc-o)-X(a1)}px" title="Forecast เปิดร้าน Day ${b.fc-o} (${fmt(b.t0+b.fc*DAY)})"></div>`;endX=X(b.fc-o);}
-    const v=cut?(b.endDay-o)-(b.sumSla-ob):b.e2e;const vc=v>10?'crit':v>3?'warn':'ok';
-    t+=`<span class="vtag ${vc}" style="left:${endX}px" title="End-to-End เทียบ SLA ${b.sumSla} วัน">${sgn(v)}d</span>`;
+    const v=state.cut?(b.endDay-o)-displaySla:b.e2e;const vc=v>0?'crit':'ok';
+    t+=`<span class="vtag ${vc}" style="left:${endX}px" title="End-to-End เทียบ SLA ${b.sumSla} วัน">${sgn(-v)}d</span>`;
     // today
     const td=b.day(TODAY)-o;t+=`<div class="todayl" style="left:${X(td)}px" title="วันนี้ Day ${td}"></div>`;
     // milestones
-    for(const [m,tm,lab] of b.ms){let d=tm!=null?b.day(tm)-o:null,fut=false;if(d==null&&m==='M5'&&b.fc!=null){d=b.fc-o;fut=true;}if(d==null&&m==='M3'&&b.gateF!=null){d=b.gateF-o;fut=true;}if(d==null)continue;
+    for(const [m,tm,lab] of b.ms){let d=tm!=null?b.day(tm)-o:null,fut=false;if(d==null&&m==='M5'&&b.fc!=null){d=b.fc-o;fut=true;}if(d==null&&m==='M3'&&b.gateF!=null){d=b.gateF-o;fut=true;}if(d==null)continue;if(cut&&d<0)continue;
       t+=`<i class="ms2 ${fut?'fut':''} ${m==='M5'&&!fut?'open':''}" style="left:${X(d)}px" title="${m}: ${lab} · Day ${d} · ${fmt(b.t0+(d+o)*DAY)}${fut?' (คาดการณ์)':''}"></i><span class="mslab" style="left:${X(d)}px">${m}</span>`;}
     if(state.par){let y=54;for(const [k,,lab] of PAR){const s=b.P[k],pb=b.pbase[k];const blk=b.block.includes(k);let inner=`<div class="pl" style="left:${X(pb[0]-ob)}px;width:${X(pb[1]-ob)-X(pb[0]-ob)}px"></div>`;
       const a=s.as??s.ps;if(a!=null){const e=s.af??(isRun(s.st)?TODAY:null);if(e!=null){const sd=b.sd[k];const c2=blk?'var(--crit)':sd>10?'var(--crit)':sd>3?'var(--warn)':'var(--ok)';inner+=`<div class="pa" style="left:${X(b.day(a)-o)}px;width:${Math.max(3,X(b.day(e)-o)-X(b.day(a)-o))}px;background:${c2}" title="${lab}: ${fmt(a)} → ${s.af?fmt(s.af):'ยังไม่เสร็จ'} · SLA ${s.sla} วัน · ${s.st}${sd?' · Delay '+sd+' วัน':''}"></div>`;inner+=`<span class="plab" style="left:${X(b.day(e)-o)+6}px">${lab}${sd?' -'+sd+'d':''}${blk?' <b style="color:var(--crit)">■ เริ่ม P7 ก่อน M3 ผ่าน</b>':''}</span>`;}}else inner+=`<span class="plab" style="left:${X(pb[1]-ob)+6}px">${lab} · ${esc(s.st)}</span>`;
@@ -995,7 +1008,7 @@ function renderGantt(L){
     const gst=b.gateState==='pass'?'<span class="ok">M3 ✓</span>':b.gateState==='nodata'?'<span>M3 —</span>':'<span class="wt">รอ M3'+(b.waitGate?' +'+b.waitGate+'d':'')+'</span>';
     const gpar=`<span class="gpar" title="Parallel Process ที่ต้องแล้วเสร็จก่อนเริ่ม P7 มอบอำนาจ: ร่างสัญญา / ลงนามสัญญาเช่า / รังวัด / ประชาพิจารณ์ (ตัวเลข = ใช้จริง/SLA วัน)${b.block.length?' · ⚠ เริ่ม P7 ก่อน M3 ผ่าน':''}">${gst}${pchipG('lease','ร่างสัญญา')}${pchipG('sign','ลงนาม')}${pchipG('survey','รังวัด')}${pchipG('hearing','ประชาฯ')}${b.block.length?'<span class="bad">⚠</span>':''}</span>`;
     const curTip=cs?` · ขั้นตอนปัจจุบัน ${SNAME[b.cur]}: SLA ${cs.sla??'—'} วัน ใช้ ${cs.wd??'—'} วัน`:'';
-    html+=`<div class="grow"><div class="gname" style="width:${nameW}px" data-code="${esc(b.code)}" tabindex="0" role="button" aria-label="ดูรายละเอียด ${esc(b.title)}"><b title="${esc(b.title)}">${esc(b.title)}</b><span class="meta"><i class="dot" style="background:${hc}"></i>${esc(b.main)} · ${esc(b.s1)}${r?' <span class="actchip">Action</span>':''}</span><span class="var num" title="${cut?'(โหมดตัด P1–P2 · Day 0 = ROI Approve · ตัวเลขในแถบคือ Target '+(b.sumSla-ob)+' วัน) ':''}Target SLA เต็ม ${b.sumSla} วัน = SLA ขั้นตอน ${b.sumSla-GATE_WAIT} + รอ M3 ${GATE_WAIT} · ${b.opened?'Actual':'Forecast'} ${b.endDay} วัน${b.waitGate?' (รอ Parallel เพิ่ม '+b.waitGate+' วัน)':''}${curTip}">T ${b.sumSla-ob} | ${b.opened?'A':'F'} ${b.endDay-o} | <b style="color:${H[vc][1]}">${sgn(v)}d</b> <span style="color:var(--fg-3)">· Acc ${sgn(b.acc)}</span></span>${gpar}<span class="gdate" title="วันเริ่ม = Date Start / Raw Material (Day 0) · วันจบ = ${b.opened?'วันเปิดร้านจริง':'วันเปิดร้านที่คาดการณ์ (Forecast)'}">${cut?'Day 0 (ROI Approve) '+fmt(b.d0)+(b.d0est?' (คาด)':''):'เริ่ม '+fmt(b.t0)} → จบ ${fmt(b.opened?b.S.open.af:b.t0+b.endDay*DAY)} <i>${b.opened?'(จริง)':b.stopped?'(หยุด/Cancel)':'(คาด)'}</i></span></div><div class="gtrack" style="width:${W}px;height:${hh}px">${t}</div></div>`;
+    html+=`<div class="grow"><div class="gname" style="width:${nameW}px" data-code="${esc(b.code)}" tabindex="0" role="button" aria-label="ดูรายละเอียด ${esc(b.title)}"><b title="${esc(b.title)}">${esc(b.title)}</b><span class="meta"><i class="dot" style="background:${hc}"></i>${esc(b.main)} · ${esc(b.s1)}${r?' <span class="actchip">Action</span>':''}</span><span class="var num" title="${cut?'(โหมดตัด P1–P2 · Day 0 = ROI Approve · ตัวเลขในแถบคือ Target '+(b.sumSla-ob)+' วัน) ':''}Target SLA เต็ม ${b.sumSla} วัน = SLA ขั้นตอน ${b.sumSla-GATE_WAIT} + รอ M3 ${GATE_WAIT} · ${b.opened?'Actual':'Forecast'} ${b.endDay} วัน${b.waitGate?' (รอ Parallel เพิ่ม '+b.waitGate+' วัน)':''}${curTip}">T ${b.sumSla-ob} วัน | ${b.opened?'A':'F'} ${b.endDay-o} วัน | <b style="color:${H[vc][1]}">${sgn(-v)}d</b> <span style="color:var(--fg-3)">· Acc ${sgn(b.acc)}</span></span>${gpar}<span class="gdate" title="วันเริ่ม = Date Start / Raw Material (Day 0) · วันจบ = ${b.opened?'วันเปิดร้านจริง':'วันเปิดร้านที่คาดการณ์ (Forecast)'}">${cut?'Day 0 (ROI Approve) '+fmt(b.d0)+(b.d0est?' (คาด)':''):'เริ่ม '+fmt(b.t0)} → จบ ${fmt(b.opened?b.S.open.af:b.t0+b.endDay*DAY)} <i>${b.opened?'(จริง)':b.stopped?'(หยุด/Cancel)':'(คาด)'}</i></span></div><div class="gtrack" style="width:${W}px;height:${hh}px">${t}</div></div>`;
   }
   if(!rows.length&&!none)html+=`<div class="gempty">ไม่มีสาขาที่มีข้อมูลวันที่ในตัวกรองนี้</div>`;
   if(none){for(const b of L.filter(x=>!x.has)){const h=health(b);html+=`<div class="grow"><div class="gname" style="width:${nameW}px" data-code="${esc(b.code)}" tabindex="0" role="button"><b title="${esc(b.title)}">${esc(b.title)}</b><span class="meta"><i class="dot" style="background:${H.na[1]}"></i>${esc(b.main)} · ${esc(b.s1)}</span><span class="var num">T ${b.sumSla-OB(b)} | — ยังไม่มีวันเริ่ม</span></div><div class="gtrack" style="width:${W}px;height:44px"><span class="plab" style="position:absolute;left:12px;top:13px;font-size:12px;color:var(--fg-3)">ยังไม่มีวันที่เริ่มต้นใน Sheet (Start Incoming / Raw Material / Date Start) จึงยังวาด Timeline ไม่ได้ · คลิกเพื่อดูรายละเอียด</span></div></div>`;}}
@@ -1111,8 +1124,9 @@ function openModal(code){
   const topSet=new Set(top.slice(0,3).map(x=>x.k));
   const mx=Math.max(b.sumSla,b.endDay,...b.seg.map(s=>s.e),1)+5;const P=d=>Math.max(0,Math.min(100,d/mx*100));
   const srow=(k,s,base)=>{const seg=b.seg.find(x=>x.k===k);let a='';if(seg)a=`<i class="a" style="left:${P(seg.s)}%;width:${Math.max(.6,P(seg.e)-P(seg.s))}%;background:${b.sd[k]>10?'var(--crit)':b.sd[k]>3?'var(--warn)':seg.run?'var(--accent)':'var(--ok)'}"></i>`;else if(s.as!=null||s.af!=null){const x0=b.day(s.as??s.ps??b.t0),x1=b.day(s.af??TODAY);a=`<i class="a" style="left:${P(x0)}%;width:${Math.max(.6,P(x1)-P(x0))}%;background:${b.sd[k]>10?'var(--crit)':b.sd[k]>3?'var(--warn)':'var(--ok)'}"></i>`;}
-    return `<div class="stg ${topSet.has(k)?'top':''}"><span class="nm" title="${esc(SNAME[k])} · ${esc(s.st)}">${esc(SNAME[k])}</span><div class="tr" title="SLA ${s.sla??'—'} วัน · ใช้จริง ${s.wd??'—'} วัน · ${esc(s.st)}&#10;เริ่มจริง: ${fmt(s.as)}&#10;เสร็จจริง: ${s.af!=null?fmt(s.af):(s.st==='Waiting'?'—':'ยังไม่เสร็จ')}"><i class="p" style="left:${P(base[0])}%;width:${Math.max(.6,P(base[1])-P(base[0]))}%"></i>${a}</div><span class="d" style="color:${b.sd[k]>10?'var(--crit)':b.sd[k]>3?'var(--warn)':'var(--fg-3)'}">${b.sd[k]?'-'+b.sd[k]+'d':s.st==='Finish'?'✓':s.st==='Waiting'?'·':esc(s.st)}</span></div>`;};
-  let stg='';for(const [p,lab,ks] of PHASES){stg+=`<div class="stg grp">${p} · ${esc(lab)}</div>`;for(const k of ks)stg+=srow(k,b.S[k],b.base[k]);if(p==='P2'){stg+=`<div class="stg grp">Parallel Process (ทำขนาน)</div>`;for(const [k] of PAR)stg+=srow(k,b.P[k],b.pbase[k]);}}
+    const ad=(s.st!=='Waiting'&&s.ad!=null)?s.ad:null;const adt=ad==null?'':(ad>0?'+':'')+ad+'d';const adc=ad==null?(b.sd[k]>10?'var(--crit)':b.sd[k]>3?'var(--warn)':'var(--fg-3)'):ad<0?'var(--crit)':ad>0?'var(--ok)':'var(--fg-3)';
+    return `<div class="stg ${topSet.has(k)?'top':''}"><span class="nm" title="${esc(SNAME[k])} · ${esc(s.st)}">${esc(SNAME[k])}</span><div class="tr" title="SLA ${s.sla??'—'} วัน · ใช้จริง ${s.wd??'—'} วัน · ${esc(s.st)}&#10;เริ่มจริง: ${fmt(s.as)}&#10;เสร็จจริง: ${s.af!=null?fmt(s.af):(s.st==='Waiting'?'—':'ยังไม่เสร็จ')}"><i class="p" style="left:${P(base[0])}%;width:${Math.max(.6,P(base[1])-P(base[0]))}%"></i>${a}</div><span class="d" style="color:${adc}">${s.st==='Finish'?'✓'+(adt?' '+adt:''):s.st==='Waiting'?'':(adt||'')}<span style="color:var(--fg-2)"> · ${k===b.cur?'Current · ':''}${esc(s.st)}</span></span></div>`;};
+  let stg='';for(const [p,lab,ks] of PHASES){if(state.cut&&(p==='P1'||p==='P2'))continue;stg+=`<div class="stg grp">${PL(p)} · ${esc(lab)}</div>`;for(const k of ks)stg+=srow(k,b.S[k],b.base[k]);if(p==='P2'){stg+=`<div class="stg grp">Parallel Process (ทำขนาน)</div>`;for(const [k] of PAR)stg+=srow(k,b.P[k],b.pbase[k]);}}
   const hasN=k=>(k==='design'&&(NOTES.design[code]||[]).length)||(k==='boq'&&(NOTES.boq[code]||[]).length);
   const causes=top.filter(x=>hasN(x.k)).map(x=>`<div class="cause ${x.v<=10?'w':''}"><div class="h"><span>${esc(SNAME[x.k])}</span><span class="mono">-${x.v} วัน</span></div><span>${esc(SCAUSE[x.k])}</span>${hasN(x.k)?'<span style="color:var(--accent-ink);font-size:12px">↓ ดูรายละเอียดจาก Subtask ใน Sheet ด้านล่าง</span>':''}<span class="o">ผู้รับผิดชอบหลัก: ${esc(x.k==='build'&&b.contractor?b.contractor:SOWN[x.k])}</span></div>`).join('');
   const blk=b.block.length?`<div class="cause"><div class="h"><span>Critical Path Blockage</span></div><span>${b.block.map(k=>SNAME[k]).join(', ')} ยังไม่ปิด/ปิดหลังเริ่มขอมอบอำนาจ (P7) → ผิดเงื่อนไข M3 และดึงเวลาเส้นทางวิกฤต</span></div>`:'';
@@ -1120,14 +1134,14 @@ function openModal(code){
   const nbox=(kind,title,col,cls)=>{const n=NOTES[kind][code];if(!n||!n.length)return '';return `<div class="nbox ${cls}"><div class="h"><span>${title}</span><span class="mono">${n.seed?'ตัวอย่างจากผู้ใช้ · รอซิงค์ Sheet':'Sheet · col '+esc(col)}</span></div>${n.map(x=>`<div class="nl">${hl(esc(x))}</div>`).join('')}</div>`;};
   const gateTxt=b.gateState==='pass'?'ผ่านแล้ว '+(b.gateT?fmt(b.gateT):''):b.gateState==='nodata'?'ไม่มีข้อมูลใน Sheet (P7 เริ่มแล้ว)':'รอ '+PAR.filter(p=>!b.pdone[p[0]]).map(p=>SNAME[p[0]]).join(' + ')+(b.gateF!=null?' · คาดผ่าน '+fmt(b.t0+b.gateF*DAY):'');
   const fv=r.cause??((top.find(x=>hasN(x.k))||{}).k?SCAUSE[top.find(x=>hasN(x.k)).k]:'');
-  const v=b.e2e;
+  const v=state.cut&&b.has?(b.endDay-b.off)-(b.sumSla-b.base.jp[1]):b.e2e;
   $('#modal').innerHTML=`<div class="mh"><div><h3 id="mTitle">${esc(b.title)}</h3><p>${esc(b.code)} · ${esc(b.name)} · ${esc(b.type)} · ${esc(b.team)}</p></div><button class="mx" type="button" data-close aria-label="ปิด">✕</button></div>
   <div class="mb">
     <div class="mstats">
       <div class="ms"><div class="lab">Health</div><div style="margin-top:6px"><span class="pill ${h}"><i class="dot" style="background:${H[h][1]}"></i>${H[h][0]}</span></div></div>
-      <div class="ms"><div class="lab">Target SLA</div><div class="v num">${b.sumSla}<small style="font-size:13px"> วัน (${b.sumSla-GATE_WAIT}+${GATE_WAIT} รอ M3)</small></div></div>
-      <div class="ms"><div class="lab">${b.opened?'Actual':'Forecast'}</div><div class="v num">${b.has?b.endDay:'—'}<small style="font-size:13px"> วัน</small></div></div>
-      <div class="ms"><div class="lab">Variance E2E</div><div class="v num" style="color:${v>10?'var(--crit)':v>3?'var(--warn)':'var(--ok)'}">${v==null?'—':sgn(v)}</div></div>
+      <div class="ms"><div class="lab">Target SLA</div><div class="v num">${state.cut?b.sumSla-b.base.jp[1]:b.sumSla}<small style="font-size:13px"> วัน${state.cut?'':' ('+((b.sumSla))+'+'+GATE_WAIT+' รอ M3)'}</small></div></div>
+      <div class="ms"><div class="lab">${b.opened?'Actual':'Forecast'}</div><div class="v num">${b.has?(state.cut?b.endDay-b.off:b.endDay):'—'}<small style="font-size:13px"> วัน</small></div></div>
+      <div class="ms"><div class="lab">Variance E2E</div><div class="v num" style="color:${v==null?'var(--fg-3)':v>0?'var(--crit)':'var(--ok)'}">${v==null?'—':sgn(-v)}</div></div>
     </div>
     <div class="mcols">
       <div class="sec"><h4>Stage Timeline · SLA (บน) vs Actual (ล่าง)</h4>${stg}
@@ -1159,7 +1173,9 @@ function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeou
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const c=e.target.closest('[data-m]');if(c){const m=c.dataset.m;state.main.has(m)?state.main.delete(m):state.main.add(m);c.setAttribute('aria-pressed',state.main.has(m));saveFilters();render();return;}
+  const md=$('#fMain details');if(md&&md.open&&!e.target.closest('.msel'))md.open=false;
+  const ma=e.target.closest('[data-mall],[data-mnone]');if(ma){state.main=ma.hasAttribute('data-mall')?new Set(MAINS):new Set(MAINS.filter(x=>!/Cancel/i.test(x)));syncMain();saveFilters();render();return;}
+  const c=e.target.closest('[data-m]');if(c){const m=c.dataset.m;c.checked?state.main.add(m):state.main.delete(m);syncMain();saveFilters();render();return;}
   const hh=e.target.closest('[data-h]');if(hh){const m=hh.dataset.h;state.health.has(m)?state.health.delete(m):state.health.add(m);hh.setAttribute('aria-pressed',state.health.has(m));saveFilters();render();return;}
   const th=e.target.closest('th[data-sort]');if(th){const k=th.dataset.sort;state.sort=[k,state.sort[0]===k?-state.sort[1]:-1];renderMatrix(filtered());return;}
   if(e.target.closest('[data-close]')){$('#modal').close();return;}
@@ -1177,7 +1193,7 @@ $('#tZoom').addEventListener('change',e=>{state.zoom=e.target.value;saveFilters(
 $('#tColor').addEventListener('change',e=>{state.color=e.target.value;saveFilters();renderGantt(filtered());});
 $('#tSort').addEventListener('change',e=>{state.gsort=e.target.value;saveFilters();renderGantt(filtered());});
 $('#cutOn').addEventListener('click',()=>{state.cut=true;saveFilters();renderGantt(filtered());});
-$('#cutOff').addEventListener('click',()=>{state.cut=false;saveFilters();renderGantt(filtered());});
+$('#cutOff').addEventListener('click',()=>{state.cut=true;saveFilters();renderGantt(filtered());});
 $('#rSort').addEventListener('change',e=>{state.rsort=e.target.value;saveFilters();renderRent();});
 let rzR;addEventListener('resize',()=>{clearTimeout(rzR);rzR=setTimeout(renderRent,150);});
 let rzT;addEventListener('resize',()=>{if(state.zoom!=='fit')return;clearTimeout(rzT);rzT=setTimeout(()=>renderGantt(filtered()),150);});
